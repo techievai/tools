@@ -1,0 +1,104 @@
+#!/bin/bash
+
+# Set Kafka bootstrap server
+BOOTSTRAP_SERVER="10.100.10.33:9092"
+
+# Define the list of topic names
+TOPIC_NAMES=(
+  user-events
+  order-events
+  payment-updates
+  inventory-status
+  shipping-events
+  customer-feedback
+  product-catalog
+  cart-activity
+  session-logs
+  error-logs
+  analytics-stream
+  fraud-detection
+  recommendation-input
+  email-notifications
+  sms-alerts
+)
+
+# Duration of test in seconds (15 minutes = 900 seconds)
+DURATION=900
+START_TIME=$(date +%s)
+
+# Generate a random record based on topic
+generate_record() {
+    local TOPIC=$1
+    local TIMESTAMP=$(date +%s)
+    local ID=$((RANDOM % 10000 + 1))
+    local VALUE=$((RANDOM % 500 + 1))
+
+    case $TOPIC in
+        user-events)
+            echo "{\"event\":\"login\",\"user_id\":$ID,\"timestamp\":$TIMESTAMP}"
+            ;;
+        order-events)
+            echo "{\"order_id\":$ID,\"user_id\":$((ID % 1000)),\"total\":$VALUE,\"timestamp\":$TIMESTAMP}"
+            ;;
+        payment-updates)
+            echo "{\"payment_id\":$ID,\"status\":\"$(shuf -n1 -e success failed pending)\",\"amount\":$VALUE,\"timestamp\":$TIMESTAMP}"
+            ;;
+        inventory-status)
+            echo "{\"product_id\":$ID,\"stock\":$((RANDOM % 100)),\"timestamp\":$TIMESTAMP}"
+            ;;
+        shipping-events)
+            echo "{\"shipment_id\":$ID,\"status\":\"$(shuf -n1 -e shipped delivered delayed)\",\"timestamp\":$TIMESTAMP}"
+            ;;
+        customer-feedback)
+            echo "{\"user_id\":$ID,\"rating\":$((RANDOM % 5 + 1)),\"comment\":\"Feedback text\",\"timestamp\":$TIMESTAMP}"
+            ;;
+        product-catalog)
+            echo "{\"product_id\":$ID,\"name\":\"Product $ID\",\"price\":$VALUE,\"timestamp\":$TIMESTAMP}"
+            ;;
+        cart-activity)
+            echo "{\"user_id\":$ID,\"action\":\"$(shuf -n1 -e add remove update)\",\"item_id\":$((ID % 200)),\"timestamp\":$TIMESTAMP}"
+            ;;
+        session-logs)
+            echo "{\"session_id\":\"sess-$ID\",\"duration\":$((RANDOM % 300)),\"timestamp\":$TIMESTAMP}"
+            ;;
+        error-logs)
+            echo "{\"level\":\"$(shuf -n1 -e INFO WARN ERROR)\",\"code\":$((RANDOM % 999)),\"message\":\"Simulated error\",\"timestamp\":$TIMESTAMP}"
+            ;;
+        analytics-stream)
+            echo "{\"metric\":\"page_views\",\"value\":$VALUE,\"timestamp\":$TIMESTAMP}"
+            ;;
+        fraud-detection)
+            echo "{\"transaction_id\":$ID,\"flagged\":$(shuf -n1 -e true false),\"timestamp\":$TIMESTAMP}"
+            ;;
+        recommendation-input)
+            echo "{\"user_id\":$ID,\"product_id\":$((ID % 200)),\"score\":$((RANDOM % 10)),\"timestamp\":$TIMESTAMP}"
+            ;;
+        email-notifications)
+            echo "{\"email_id\":\"email-$ID\",\"status\":\"$(shuf -n1 -e sent failed queued)\",\"timestamp\":$TIMESTAMP}"
+            ;;
+        sms-alerts)
+            echo "{\"phone\":\"+1-555-$(printf "%04d" $ID)\",\"message\":\"Test SMS\",\"timestamp\":$TIMESTAMP}"
+            ;;
+        *)
+            echo "{\"message\":\"Default message for $TOPIC\",\"timestamp\":$TIMESTAMP}"
+            ;;
+    esac
+}
+
+# Start producing
+echo "Starting data production for 15 minutes..."
+
+while [ $(($(date +%s) - START_TIME)) -lt $DURATION ]; do
+    for TOPIC in "${TOPIC_NAMES[@]}"; do
+        RECORD=$(generate_record "$TOPIC")
+
+        echo "$RECORD" | /opt/kafka/bin/kafka-console-producer.sh \
+            --broker-list "$BOOTSTRAP_SERVER" \
+            --topic "$TOPIC" > /dev/null
+
+        echo "Sent to $TOPIC: $RECORD"
+    done
+    sleep 1
+done
+
+echo "Finished producing data for 15 minutes."
