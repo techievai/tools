@@ -1,0 +1,64 @@
+#!/bin/bash
+
+# Kafka bootstrap server
+BOOTSTRAP_SERVER="localhost:9092"
+
+# Topics defined
+TOPIC_NAMES=(
+  user-events
+  order-events
+  payment-updates
+  inventory-status
+  shipping-events
+  customer-feedback
+  product-catalog
+  cart-activity
+  session-logs
+  error-logs
+  analytics-stream
+  fraud-detection
+  recommendation-input
+  email-notifications
+  sms-alerts
+)
+
+# Start single-topic consumer
+consume_single_topic() {
+    local TOPIC=$1
+    echo "Starting consumer for topic: $TOPIC"
+    kafka-console-consumer.sh \
+        --bootstrap-server "$BOOTSTRAP_SERVER" \
+        --topic "$TOPIC" \
+        --from-beginning \
+        --property print.timestamp=true \
+        --property print.key=true \
+        --property print.value=true &
+}
+
+# Start multi-topic consumer
+consume_multiple_topics() {
+    local TOPICS_CSV=$1
+    echo "Starting multi-topic consumer for: $TOPICS_CSV"
+    kafka-console-consumer.sh \
+        --bootstrap-server "$BOOTSTRAP_SERVER" \
+        --topic "$TOPICS_CSV" \
+        --from-beginning \
+        --property print.timestamp=true \
+        --property print.key=true \
+        --property print.value=true &
+}
+
+### Start single-topic consumers ###
+consume_single_topic "user-events"
+consume_single_topic "order-events"
+consume_single_topic "payment-updates"
+consume_single_topic "inventory-status"
+consume_single_topic "shipping-events"
+consume_single_topic "customer-feedback"
+
+### Start multi-topic consumers ###
+consume_multiple_topics "product-catalog,cart-activity"
+consume_multiple_topics "error-logs,analytics-stream,fraud-detection"
+
+echo "8 Kafka consumers started (6 single-topic + 2 multi-topic)"
+echo "Press Ctrl+C to stop them manually."
