@@ -1,0 +1,38 @@
+#!/bin/bash
+
+# Set Kafka bootstrap server
+BOOTSTRAP_SERVER="localhost:9092"
+
+# Define the list of 15 topic names
+TOPIC_NAMES=(
+  user-events
+  order-events
+  payment-updates
+  inventory-status
+  shipping-events
+  customer-feedback
+  product-catalog
+  cart-activity
+  session-logs
+  error-logs
+  analytics-stream
+  fraud-detection
+  recommendation-input
+  email-notifications
+  sms-alerts
+)
+
+# Create each topic
+for TOPIC in "${TOPIC_NAMES[@]}"; do
+    echo "Creating topic: $TOPIC"
+    
+    kafka-topics.sh --create \
+        --bootstrap-server "$BOOTSTRAP_SERVER" \
+        --replication-factor 1 \
+        --partitions 1 \
+        --topic "$TOPIC"
+
+    sleep 1
+done
+
+echo "All topics created."
